@@ -19,7 +19,7 @@ async function sendMail(user: any) {
         from: '"Roberto Nzohabonayo 👻" <foo@example.com>',
         to: `${user.email}`,
         subject: "Hello ✔",
-        text: `Hello ${user.firstname} ${user.lastname}, welcome to Ticket System the platform.`,
+        text: `Hello ${user.firstname} ${user.lastname}, welcome to Ticket System platform.`,
     })
 
     console.log("Message sent", info.messageId)

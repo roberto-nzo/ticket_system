@@ -32,20 +32,19 @@ const Users = sequelize.define<UserInstance>(
   userSchema,
   {
     hooks: {
+      beforeCreate: async (user, options) => {
+        await hashPassword(user)
+      },
       afterCreate: (user, options) => {
-        sendMail(user)
+        try {
+          sendMail(user)
+        } catch (error) {
+          throw new Error
+        }
       }
     }
   }
 )
-
-// Hook beforeCreate()
-Users.beforeCreate(hashPassword)
-
-// Hook afterCreate()
-// Users.afterCreate((user, options) => {
-//   sendMail(user)
-// })
 
 // Hash password
 async function hashPassword(user: { password: string | Buffer; }) {
