@@ -2,7 +2,7 @@
   "development": {
     "username": "root",
     "password": null,
-    "database": "ticket_system",
+    "database": "ticket_sys",
     "host": "127.0.0.1",
     "dialect": "mysql"
   },

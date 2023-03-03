@@ -1,66 +1,61 @@
-import { Sequelize, Model, InferAttributes, InferCreationAttributes, CreationOptional, DataTypes, HasOneSetAssociationMixin, HasManyAddAssociationMixin } from 'sequelize'
-import Role from './role'
-import Task from './task'
+'use strict';
+import { Optional, Model, CreationOptional } from 'sequelize';
+import { userSchema } from '../database/schema';
+import { sequelize } from '.'
+import Roles from './role';
+import bcrypt from 'bcrypt'
+import sendMail from '../middleware/sendMail';
 
-const sequelize = new Sequelize('mysql://root:@localhost:3306/ticket_system')
 
-class User extends Model<InferAttributes<User>, InferCreationAttributes<User>>{
-    declare id: CreationOptional<number>
-    declare firstname: string
-    declare lastname: string
-    declare username: string
-    declare email: string
-    declare password: CreationOptional<string>
-
-    declare createdAt: CreationOptional<Date>
-    declare updatedAt: CreationOptional<Date>
-
-    declare setRole: HasOneSetAssociationMixin<Role, 'id'>
-    declare addTask: HasManyAddAssociationMixin<Task, 'id'>
+interface UserAttributes {
+  id: number,
+  firstname: string,
+  lastname: string,
+  username: string,
+  email: string,
+  password: string,
 }
 
-User.init(
-    {
-        id: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
-            primaryKey: true
-        },
-        firstname: {
-            type: new DataTypes.STRING(128),
-            allowNull: true,
-        },
-        lastname: {
-            type: new DataTypes.STRING(128),
-            allowNull: true
-        },
-        username: {
-            type: new DataTypes.STRING(128),
-            allowNull: false,
-            unique: true
-        },
-        email: {
-            type: new DataTypes.STRING(128),
-            allowNull: false,
-            unique: true
-        },
-        password: {
-            type: new DataTypes.STRING(128),
-            allowNull: false,
-        },
-        createdAt: DataTypes.DATE,
-        updatedAt: DataTypes.DATE
-    },
-    {
-        tableName: 'users',
-        sequelize
+interface UserCreationAttributes extends Optional<UserAttributes, 'id'> { }
+
+interface UserInstance extends Model<UserAttributes, UserCreationAttributes>, UserAttributes {
+  addTask //   }, {
+    (fetchTask: any): unknown;
+  setRole(fetchRole: any): unknown;
+  roleId: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const Users = sequelize.define<UserInstance>(
+  'Users',
+  userSchema,
+  {
+    hooks: {
+      afterCreate: (user, options) => {
+        sendMail(user)
+      }
     }
+  }
 )
 
-async function main() {
-    await sequelize.sync()
+// Hook beforeCreate()
+Users.beforeCreate(hashPassword)
+
+// Hook afterCreate()
+// Users.afterCreate((user, options) => {
+//   sendMail(user)
+// })
+
+// Hash password
+async function hashPassword(user: { password: string | Buffer; }) {
+  if (user.password) {
+    const salt = bcrypt.genSalt(10)
+    user.password = await bcrypt.hash(user.password, await salt)
+  }
 }
 
-main()
+Users.belongsTo(Roles)
+Roles.hasMany(Users)
 
-export default User
+export default Users

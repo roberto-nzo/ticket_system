@@ -1,22 +1,8 @@
-import User from "./user"
-import Task from "./task"
-import Priority from "./priority"
-import Role from "./role"
-import { Sequelize } from 'sequelize'
+import { Sequelize } from "sequelize";
 
-const db = new Sequelize('mysql://root:@localhost:3306/ticket_system')
+const env = process.env.NODE_ENV || 'development'
+const config = require(__dirname + '/../config/config.json')[env]
 
-// Many-Many User-Task
-User.belongsToMany(Task, { through: 'UserTask' })
-Task.belongsToMany(User, { through: 'UserTask' })
+const sequelize = config.url ? new Sequelize(config.url, config) : new Sequelize(config.database, config.username, config.password, config)
 
-// One-Many Role-User
-User.belongsTo(Role)
-Role.hasMany(User)
-
-// One-Many Tasks-Priority
-Task.belongsTo(Priority)
-Priority.hasMany(Task)
-
-
-export default { User, Task, Role, Priority }
+export { Sequelize, sequelize }

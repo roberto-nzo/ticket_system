@@ -1,40 +1,33 @@
-import { Sequelize, Model, InferAttributes, InferCreationAttributes, CreationOptional, DataTypes } from 'sequelize'
+'use strict';
+import { Optional, Model, DataTypes } from 'sequelize';
+import { prioritySchema, roleSchema } from '../database/schema';
+import { sequelize } from '.'
+import Tasks from './task';
 
-const sequelize = new Sequelize('mysql://root:@localhost:3306/ticket_system')
-
-class Priority extends Model<InferAttributes<Priority>, InferCreationAttributes<Priority>>{
-    declare id: CreationOptional<number>
-    declare priorityName: String
-
-    declare createdAt: CreationOptional<Date>
-    declare updatedAt: CreationOptional<Date>
+interface PriorityAttributes {
+  id: number,
+  priorityName: string
 }
 
-Priority.init(
-    {
-        id: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
-            primaryKey: true
-        },
-        priorityName: {
-            type: new DataTypes.STRING(128),
-            allowNull: false,
-            unique: true
-        },
-        createdAt: DataTypes.DATE,
-        updatedAt: DataTypes.DATE
-    },
-    {
-        tableName: 'priorities',
-        sequelize
-    }
+interface PriorityCreationAttributes extends Optional<PriorityAttributes, 'id'> { }
+
+interface PriorityInstance extends Model<PriorityAttributes, PriorityCreationAttributes>, PriorityAttributes {
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const Priorities = sequelize.define<PriorityInstance>(
+  'Priorities', prioritySchema
 )
 
-async function main() {
-    await sequelize.sync()
-}
+Priorities.hasMany(Tasks, {
+  sourceKey: 'id',
+  foreignKey: 'PriorityId',
+  as: 'tasks'
+})
+Tasks.belongsTo(Priorities, {
+  foreignKey: 'PriorityId',
+  as: 'priorities'
+})
 
-main()
-
-export default Priority
+export default Priorities

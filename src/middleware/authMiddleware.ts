@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 import expressAsyncHandler from 'express-async-handler'
-import models from '../models/index'
 import { Response } from 'express'
+import User from '../models/user'
 
 
 class Protection {
@@ -15,7 +15,7 @@ class Protection {
                 const decoded: any = jwt.verify(token, process.env.JWT_SECRET!)
 
                 if (token && decoded.roleId === 1) {
-                    req.user = await models.User.findByPk(decoded.id, {
+                    req.user = await User.findByPk(decoded.id, {
                         attributes: {
                             exclude: ['password']
                         }
@@ -49,7 +49,7 @@ class Protection {
                 console.log(decoded.roleId)
 
                 if (token && [1, 2].includes(decoded.roleId)) {
-                    req.user = await models.User.findByPk(decoded.id, {
+                    req.user = await User.findByPk(decoded.id, {
                         attributes: {
                             exclude: ['password']
                         }
@@ -82,7 +82,7 @@ class Protection {
                 const decoded: string | any = jwt.verify(token, process.env.JWT_SECRET!)
 
                 if (token) {
-                    req.user = await models.User.findByPk(decoded.id, {
+                    req.user = await User.findByPk(decoded.id, {
                         attributes: {
                             exclude: ['password']
                         }

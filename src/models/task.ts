@@ -1,52 +1,31 @@
-import { Sequelize, Model, InferAttributes, InferCreationAttributes, CreationOptional, DataTypes, HasOneSetAssociationMixin } from 'sequelize'
-import Role from './role'
+'use strict';
+import { Optional, Model, HasOneSetAssociationMixin } from 'sequelize';
+import { taskSchema } from '../database/schema';
+import { sequelize } from '.'
+import Users from './user';
 
-const sequelize = new Sequelize('mysql://root:@localhost:3306/ticket_system')
-
-class Task extends Model<InferAttributes<Task>, InferCreationAttributes<Task>>{
-    declare id: CreationOptional<number>
-    declare title: string
-    declare description: String
-    declare dueDate: CreationOptional<Date>
-
-    declare createdAt: CreationOptional<Date>
-    declare updatedAt: CreationOptional<Date>
-
-    declare setPriority: HasOneSetAssociationMixin<Role, 'id'>
+interface TasksAttributes {
+  id: number,
+  title: string
+  description: string
+  dueDate: Date
 }
 
-Task.init(
-    {
-        id: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
-            primaryKey: true
-        },
-        title: {
-            type: new DataTypes.STRING(128),
-            allowNull: false,
-            unique: true
-        },
-        description: {
-            type: new DataTypes.STRING(128),
-            allowNull: false,
-        },
-        dueDate: {
-            type: DataTypes.DATE
-        },
-        createdAt: DataTypes.DATE,
-        updatedAt: DataTypes.DATE
-    },
-    {
-        tableName: 'tasks',
-        sequelize
-    }
+interface TasksCreationAttributes extends Optional<TasksAttributes, 'id'> { }
+
+interface TaskInstance extends Model<TasksAttributes, TasksCreationAttributes>, TasksAttributes {
+
+  setPriorities(findPriority: any): unknown;
+  priorityId: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const Tasks = sequelize.define<TaskInstance>(
+  'Tasks', taskSchema
 )
 
-async function main() {
-    await sequelize.sync()
-}
+Users.belongsToMany(Tasks, { through: "UserTasks" })
+Tasks.belongsToMany(Users, { through: "UserTasks" })
 
-main()
-
-export default Task
+export default Tasks

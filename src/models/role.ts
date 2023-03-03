@@ -1,40 +1,22 @@
-import { Sequelize, Model, InferAttributes, InferCreationAttributes, CreationOptional, DataTypes } from 'sequelize'
+'use strict';
+import { Optional, Model, DataTypes } from 'sequelize';
+import { roleSchema } from '../database/schema';
+import { sequelize } from '.'
 
-const sequelize = new Sequelize('mysql://root:@localhost:3306/ticket_system')
-
-class Role extends Model<InferAttributes<Role>, InferCreationAttributes<Role>>{
-    declare id: CreationOptional<number>
-    declare roleName: String
-
-    declare createdAt: CreationOptional<Date>
-    declare updatedAt: CreationOptional<Date>
+interface RoleAttributes {
+  id: DataTypes.IntegerDataType,
+  roleName: string
 }
 
-Role.init(
-    {
-        id: {
-            type: DataTypes.INTEGER,
-            autoIncrement: true,
-            primaryKey: true
-        },
-        roleName: {
-            type: new DataTypes.STRING(128),
-            allowNull: false,
-            unique: true
-        },
-        createdAt: DataTypes.DATE,
-        updatedAt: DataTypes.DATE
-    },
-    {
-        tableName: 'roles',
-        sequelize
-    }
+interface RolesCreationAttributes extends Optional<RoleAttributes, 'id'> { }
+
+interface RoleInstance extends Model<RoleAttributes, RolesCreationAttributes>, RoleAttributes {
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+const Roles = sequelize.define<RoleInstance>(
+  'Roles', roleSchema
 )
 
-async function main() {
-    await sequelize.sync()
-}
-
-main()
-
-export default Role
+export default Roles

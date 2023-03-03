@@ -1,7 +1,9 @@
-import models from "../../models/index"
 import { Request, Response } from "express";
 const jwt = require('jsonwebtoken')
 import bcrypt from 'bcrypt'
+import Users from "../../models/user";
+import Roles from "../../models/role";
+import Tasks from "../../models/task";
 
 class UserService {
     // Register a user
@@ -11,21 +13,26 @@ class UserService {
             throw new Error('Please complete all fields')
         }
 
-        const salt = await bcrypt.genSalt(10)
-        const hashedPassword = await bcrypt.hash(req.body.password, salt)
-        const fetchRole: any = await models.Role.findOne({ where: { roleName: req.body.role } })
+        const fetchRole: any = await Roles.findOne({ where: { roleName: req.body.role } })
 
         if (fetchRole) {
-            const user = await models.User.create({
+            let fetchTask: any
+            if (req.body.task) {
+                fetchTask = await Tasks.findOne({ where: { title: req.body.task } })
+            }
+            const user = await Users.create({
                 firstname: req.body.firstname,
                 lastname: req.body.lastname,
                 username: req.body.username,
                 email: req.body.email,
-                password: hashedPassword
+                password: req.body.password
             })
             await user.setRole(fetchRole)
+            if (!fetchTask) {
+                await user.addTask(fetchTask)
+            }
             if (req.body.task) {
-                const fetchTask: any = await models.Task.findOne({ where: { title: req.body.task } })
+                const fetchTask: any = await Tasks.findOne({ where: { title: req.body.task } })
                 await user.addTask(fetchTask)
             }
             return user
@@ -39,15 +46,15 @@ class UserService {
     // Login user
     loginUser = async (req: Request, res: Response) => {
         const { username, password } = req.body
-        const user: any = await models.User.findOne({
+        const user: any = await Users.findOne({
             where: { username },
             include: [
                 {
-                    model: models.Role,
+                    model: Roles,
                     attributes: { exclude: ['createdAt', 'updatedAt'] }
                 },
                 {
-                    model: models.Task,
+                    model: Tasks,
                     attributes: { exclude: ['createdAt', 'updatedAt'] }
                 }
             ],
@@ -73,17 +80,17 @@ class UserService {
 
     // Get all users
     fetchUsers = async () => {
-        const users = await models.User.findAll(
+        const users = await Users.findAll(
             {
                 attributes: {
                     exclude: ['password', 'createdAt', 'updatedAt']
                 },
                 include: [{
-                    model: models.Task,
+                    model: Tasks,
                     attributes: { exclude: ['createdAt', 'updatedAt'] }
                 },
                 {
-                    model: models.Role,
+                    model: Roles,
                     attributes: { exclude: ['createdAt', 'updatedAt'] }
                 }]
             }
@@ -94,7 +101,7 @@ class UserService {
 
     // Get one user
     getUser = async (req: Request, res: Response) => {
-        const user = await models.User.findByPk(req.params.id)
+        const user = await Users.findByPk(req.params.id)
         if (!user) {
             res.status(400)
             throw new Error('User do not exist')
@@ -105,14 +112,14 @@ class UserService {
 
     // Update a user
     updateUser = async (req: Request, res: Response) => {
-        const user = await models.User.findByPk(req.params.id)
+        const user = await Users.findByPk(req.params.id)
         if (user) {
             if (req.body.role) {
-                const role: any = await models.Role.findOne({ where: { roleName: req.body.role } })
+                const role: any = await Roles.findOne({ where: { roleName: req.body.role } })
                 await user.setRole(role?.id)
             }
             if (req.body.task) {
-                const task: any = await models.Task.findOne({ where: { title: req.body.task } })
+                const task: any = await Tasks.findOne({ where: { title: req.body.task } })
                 await user.addTask(task?.id)
             }
             await user.update({
@@ -131,13 +138,13 @@ class UserService {
 
     // Delete a user
     deleteUser = async (req: Request, res: Response) => {
-        const userId = await models.User.findByPk(req.params.id)
+        const userId = await Users.findByPk(req.params.id)
 
         if (!userId) {
             res.status(400)
             throw new Error(`User don't exist`)
         }
-        const user = await models.User.destroy({
+        const user = await Users.destroy({
             where: {
                 id: req.params.id
             }

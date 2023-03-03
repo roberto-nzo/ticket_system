@@ -1,22 +1,31 @@
-import models from "../../models/index"
 import { Request, Response } from "express";
+import Priorities from "../../models/priority";
+import Tasks from "../../models/task";
+import Users from "../../models/user";
 
 class TaskService {
     // Create a task
     createTask = async (req: Request, res: Response) => {
-        if (!req.body.title || !req.body.description || !req.body.dueDate) {
+        if (!req.body.title || !req.body.description || !req.body.dueDate || !req.body.priority) {
             res.status(400)
             throw new Error('Please complete all fields')
         } else {
-            const task = await models.Task.create({
+            const fetchTask = await Tasks.findOne({ where: { title: req.body.title } })
+
+            if (fetchTask) {
+                res.status(400)
+                throw new Error(`${fetchTask.title} already exist`)
+            }
+
+            const findPriority = await Priorities.findOne({ where: { priorityName: req.body.priority } })
+
+            const task = await Tasks.create({
                 title: req.body.title,
                 description: req.body.description,
                 dueDate: req.body.dueDate,
             })
-            if (req.body.priority) {
-                const fetchPriority: any = await models.Priority.findOne({ where: { priorityName: req.body.priority } })
-                await task.setPriority(fetchPriority)
-            }
+
+            await task.setPriorities(findPriority)
 
             return task
         }
@@ -24,30 +33,25 @@ class TaskService {
 
     // Get all tasks
     fetchTasks = async (req: any) => {
-        const tasks = await models.Task.findAll()
-
-        const task: any = await models.Task.findByPk(1, {
+        const tasks = await Tasks.findAll({
             include: [
                 {
-                    model: models.User,
+                    model: Users,
                     attributes: { exclude: ['password', 'createdAt', 'updatedAt'] }
+                },
+                {
+                    model: Priorities,
+                    as: 'priorities'
                 }
             ]
         })
 
-        const test = task.Users.map((role: any) => role.RoleId)
-
-        // console.log(test)
-
-        console.log(req.user)
-
-
-        return task
+        return tasks
     }
 
     // Get one task
     getTask = async (req: Request, res: Response) => {
-        const task = await models.Task.findByPk(req.params.id)
+        const task = await Tasks.findByPk(req.params.id)
         if (!task) {
             res.status(400)
             throw new Error('Task do not exist')
@@ -58,7 +62,7 @@ class TaskService {
 
     // Update a task
     updateTask = async (req: Request, res: Response) => {
-        const task = await models.Task.findByPk(req.params.id)
+        const task = await Tasks.findByPk(req.params.id)
         if (task) {
             await task.update({
                 title: req.body.title ? req.body.title : task.title,
@@ -75,16 +79,16 @@ class TaskService {
 
     // Delete a task
     deleteTask = async (req: any, res: Response) => {
-        const task: any = await models.Task.findByPk(req.params.id, {
+        const task: any = await Tasks.findByPk(req.params.id, {
             include: [{
-                model: models.User,
+                model: Users,
                 attributes: { exclude: ['password', 'createdAt', 'updatedAt'] }
             }]
         })
 
         if (task) {
 
-            const taskId = await models.Task.destroy({
+            const taskId = await Tasks.destroy({
                 where: {
                     id: req.params.id
                 }
